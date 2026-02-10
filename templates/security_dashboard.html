@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>SRIT Security Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        /* --- PRINT STYLES FOR TICKET --- */
+        .p-hive-footer {
+            margin-top: 15px;
+            text-align: center;
+            font-size: 10px;
+            font-weight: 600;
+            font-family: sans-serif;
+            color: #000;
+            border-top: 1px solid #ccc;
+            padding-top: 5px;
+            width: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <header class="main-header">
+        <div style="display:flex; align-items:center; gap:15px;">
+            <img src="{{ url_for('static', filename='srit_logo.png') }}" height="40"
+                style="background:white; border-radius:50%; padding:2px;">
+            <div>
+                <h1>SRIT Main Gate</h1>
+                <p>Security Panel</p>
+            </div>
+        </div>
+        <div style="text-align:right;">
+            <span style="display:block; font-size:0.9rem;">👤 {{ session['name'] }}</span>
+            <a href="/" style="font-size:0.8rem; color:#ffcc00;">Logout</a>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="tabs">
+            <button class="tab-btn active" onclick="showTab('bookings')">📅 Bookings</button>
+            <button class="tab-btn" onclick="showTab('entry')">📷 Entry</button>
+            <button class="tab-btn" onclick="showTab('exit')">🚪 Exit</button>
+        </div>
+
+        <div id="bookings" class="tab-content active">
+            <div class="card">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                    <h2 style="margin:0;">Today's Pre-Booked Visitors</h2>
+                    <button onclick="loadBookings()" class="btn-sm action-btn"
+                        style="width:auto; margin:0; padding:8px 15px;">🔄 Refresh</button>
+                </div>
+                <table class="booking-table">
+                    <thead>
+                        <tr>
+                            <th>Visitor</th>
+                            <th>Mobile</th>
+                            <th>Booked By</th>
+                            <th>Dept</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="booking-list-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="entry" class="tab-content">
+            <div class="split-layout">
+                <div class="card" style="padding:0; overflow:hidden; border:none; background:transparent;">
+                    <div class="camera-section">
+                        <video id="video" autoplay></video>
+                        <button id="snap-btn" onclick="takeSnapshot()">📸 Capture</button>
+                    </div>
+                    <img id="photo-preview" src="" alt="Preview">
+                </div>
+
+                <div class="card">
+                    <h2 style="margin-top:0; color:var(--primary);">New Entry</h2>
+                    <div style="margin-bottom:1rem;">
+                        <input type="number" id="mobile" placeholder="Visitor Mobile (10 digits)"
+                            onblur="checkVisitor()">
+                        <div id="status-msg"></div>
+                    </div>
+                    <input type="text" id="name" placeholder="Full Name">
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                        <select id="designation">
+                            <option value="Visitor">Visitor</option>
+                            <option value="Parent">Parent</option>
+                            <option value="Student">Student</option>
+                            <option value="Vendor">Vendor</option>
+                            <option value="Guest">Guest</option>
+                        </select>
+                        <input type="text" id="company" placeholder="Company / Place">
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                        <input type="text" id="laptop" placeholder="Laptop (Optional)">
+                        <input type="text" id="vehicle" placeholder="Vehicle No. (TN XX...)">
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                        <input type="text" id="to_meet" placeholder="To Meet (Staff)">
+                        <input type="text" id="department" placeholder="Department">
+                    </div>
+
+                    <button id="printBtn" class="action-btn" onclick="generatePassAndPrint()">🖨️ Print & Save</button>
+                    <p id="save-status" style="text-align:center; font-size:0.8rem; margin-top:5px; color:gray;"></p>
+                </div>
+            </div>
+        </div>
+
+        <div id="exit" class="tab-content">
+            <div class="card">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                    <h2 style="margin:0;">Active Visitors (Currently Inside)</h2>
+                    <button onclick="loadActiveVisitors()" class="btn-sm action-btn"
+                        style="width:auto; margin:0; padding:8px 15px;">🔄 Refresh</button>
+                </div>
+                <table class="booking-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Company</th>
+                            <th>To Meet</th>
+                            <th>Entry Time</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="active-visitors-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Checkout Confirmation Modal -->
+        <div id="checkout-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:1000; align-items:center; justify-content:center;">
+            <div style="background:white; padding:0; border-radius:12px; max-width:500px; width:90%; box-shadow:0 10px 25px rgba(0,0,0,0.3); overflow:hidden;">
+                
+                <!-- Modal Header -->
+                <div style="background:linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); padding:20px; color:white;">
+                    <h3 style="margin:0; font-size:1.3rem; font-weight:600;">🚪 Checkout Visitor</h3>
+                </div>
+
+                <!-- Modal Body -->
+                <div style="padding:25px;">
+                    <!-- Visitor Info Box -->
+                    <div style="background:#f8fafc; border-left:4px solid #3b82f6; padding:15px; border-radius:6px; margin-bottom:20px;">
+                        <div style="margin-bottom:8px;">
+                            <span style="color:#64748b; font-size:0.85rem; text-transform:uppercase; font-weight:600;">Visitor Name</span>
+                            <div style="font-size:1.1rem; font-weight:600; color:#1e293b; margin-top:3px;" id="modal-visitor-name"></div>
+                        </div>
+                        <div style="border-top:1px solid #e2e8f0; margin:10px 0; padding-top:10px;">
+                            <span style="color:#64748b; font-size:0.85rem;">Entry Time:</span>
+                            <span style="font-weight:600; color:#1e293b; margin-left:5px;" id="modal-entry-time"></span>
+                        </div>
+                    </div>
+
+                    <!-- Time Selection -->
+                    <div style="margin-bottom:25px;">
+                        <label style="display:block; margin-bottom:15px; font-weight:600; color:#334155; font-size:0.95rem;">Select Exit Time</label>
+                        
+                        <!-- Current Time Option -->
+                        <div style="background:#f1f5f9; border:2px solid #cbd5e1; padding:12px 15px; border-radius:8px; margin-bottom:12px; cursor:pointer; transition:all 0.2s;" onclick="document.getElementById('current-time').click()">
+                            <div style="display:flex; align-items:center; gap:12px;">
+                                <input type="radio" name="time-option" id="current-time" value="current" checked style="width:18px; height:18px; cursor:pointer;">
+                                <div style="flex:1;">
+                                    <label for="current-time" style="cursor:pointer; font-weight:600; color:#1e293b; display:block; margin-bottom:3px;">Current Time</label>
+                                    <span style="color:#64748b; font-size:0.9rem;" id="current-time-display"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Custom Time Option -->
+                        <div style="background:#f1f5f9; border:2px solid #cbd5e1; padding:12px 15px; border-radius:8px; cursor:pointer; transition:all 0.2s;" onclick="document.getElementById('custom-time').click()">
+                            <div style="display:flex; align-items:center; gap:12px;">
+                                <input type="radio" name="time-option" id="custom-time" value="custom" style="width:18px; height:18px; cursor:pointer;">
+                                <div style="flex:1;">
+                                    <label for="custom-time" style="cursor:pointer; font-weight:600; color:#1e293b; display:block; margin-bottom:5px;">Custom Time</label>
+                                    <div style="display:flex; gap:8px; align-items:center;">
+                                        <input type="number" id="custom-hour" min="1" max="12" placeholder="HH" style="width:60px; padding:8px; border:1px solid #cbd5e1; border-radius:6px; font-size:1rem; text-align:center; outline:none; background:white;" disabled>
+                                        <span style="font-weight:bold; color:#64748b;">:</span>
+                                        <input type="number" id="custom-minute" min="0" max="59" placeholder="MM" style="width:60px; padding:8px; border:1px solid #cbd5e1; border-radius:6px; font-size:1rem; text-align:center; outline:none; background:white;" disabled>
+                                        <select id="custom-period" style="padding:8px 12px; border:1px solid #cbd5e1; border-radius:6px; font-size:1rem; outline:none; background:white; cursor:pointer;" disabled>
+                                            <option value="AM">AM</option>
+                                            <option value="PM">PM</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal Footer -->
+                <div style="background:#f8fafc; padding:20px; display:flex; gap:12px; border-top:1px solid #e2e8f0;">
+                    <button onclick="closeCheckoutModal()" style="flex:1; padding:12px; background:white; color:#475569; border:2px solid #cbd5e1; border-radius:8px; cursor:pointer; font-weight:600; font-size:0.95rem; transition:all 0.2s;">Cancel</button>
+                    <button onclick="confirmCheckout()" style="flex:1; padding:12px; background:#16a34a; color:white; border:none; border-radius:8px; cursor:pointer; font-weight:600; font-size:0.95rem; transition:all 0.2s;">✓ Confirm Checkout</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="printable-ticket">
+        <div class="p-header">
+            <img src="{{ url_for('static', filename='srit_logo.png') }}" class="p-logo" alt="Logo">
+            <div class="p-header-text">
+                <h3>Sri Ramakrishna Institute of Technology</h3>
+                <p>Visitor Gate Pass</p>
+            </div>
+        </div>
+        <div class="p-meta">
+            <span>Pass No: <span id="t-pass-id">...</span></span>
+            <span id="t-date-time"></span>
+        </div>
+        <div class="p-body">
+            <div class="p-fields">
+                <div class="p-row"><span class="p-label">Name:</span><span class="p-val" id="t-name"></span></div>
+                <div class="p-row"><span class="p-label">Category:</span><span class="p-val" id="t-designation"></span>
+                </div>
+                <div class="p-row"><span class="p-label">From:</span><span class="p-val" id="t-company"></span></div>
+                <div class="p-row"><span class="p-label">Mobile:</span><span class="p-val" id="t-mobile"></span></div>
+                <div class="p-row"><span class="p-label">Laptop:</span><span class="p-val" id="t-laptop"></span></div>
+                <div class="p-row"><span class="p-label">Vehicle:</span><span class="p-val" id="t-vehicle"></span></div>
+            </div>
+            <div class="p-photo-box">
+                <img id="t-photo" class="p-photo" src="" alt="Visitor Photo">
+            </div>
+        </div>
+        <div class="p-meet">
+            <p><strong>To Meet:</strong> <span id="t-meet"></span></p>
+            <p><strong>Department:</strong> <span id="t-dept"></span></p>
+        </div>
+        <div class="p-footer">
+            <div class="p-sign">Visitor Sign</div>
+            <div class="p-sign">Security Sign</div>
+        </div>
+        <div class="p-out">Out Time: __________________</div>
+        <div class="p-hive-footer">Designed and Developed by HIVE</div>
+    </div>
+
+    <script>
+        // --- LOGIC ---
+        function showTab(id) {
+            document.querySelectorAll('.tab-content').forEach(d => d.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            if (id === 'bookings') loadBookings();
+            if (id === 'exit') loadActiveVisitors();
+        }
+
+        async function loadBookings() {
+            const tbody = document.getElementById('booking-list-body');
+            tbody.innerHTML = "<tr><td colspan='5' style='text-align:center'>Loading...</td></tr>";
+            try {
+                const res = await fetch('/api/get_today_bookings');
+                const data = await res.json();
+                tbody.innerHTML = "";
+                if (data.length === 0) {
+                    tbody.innerHTML = "<tr><td colspan='5' style='text-align:center'>No pending bookings today.</td></tr>";
+                    return;
+                }
+                data.forEach(b => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td><strong>${b.visitor}</strong></td>
+                            <td>${b.mobile}</td>
+                            <td>${b.booked_by}</td>
+                            <td><span style="background:#e2e8f0; padding:2px 6px; border-radius:4px; font-size:0.8rem;">${b.dept}</span></td>
+                            <td><button class="btn-sm action-btn" style="margin:0; width:auto; padding:5px 10px;" onclick="processBooking('${b.mobile}')">Process</button></td>
+                        </tr>`;
+                });
+            } catch (e) { tbody.innerHTML = "<tr><td colspan='5'>Error loading bookings</td></tr>"; }
+        }
+
+        function processBooking(mobile) {
+            showTab('entry');
+            document.getElementById('mobile').value = mobile;
+            checkVisitor();
+        }
+
+        const video = document.getElementById('video');
+        const canvas = document.createElement('canvas');
+        let capturedImage = null;
+        navigator.mediaDevices.getUserMedia({ video: true }).then(s => { video.srcObject = s; });
+
+        function takeSnapshot() {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            capturedImage = canvas.toDataURL('image/jpeg');
+            const preview = document.getElementById('photo-preview');
+            preview.src = capturedImage;
+            preview.style.display = 'block';
+        }
+
+        async function checkVisitor() {
+            const mobile = document.getElementById('mobile').value;
+            const msg = document.getElementById('status-msg');
+            msg.innerHTML = "";
+            if (mobile.length !== 10) return;
+
+            const res = await fetch(`/api/check_visitor?mobile=${mobile}`);
+            const data = await res.json();
+
+            if (data.found) {
+                document.getElementById('name').value = data.name || "";
+                document.getElementById('company').value = data.company || "";
+                document.getElementById('laptop').value = data.laptop || "";
+                document.getElementById('vehicle').value = data.vehicle || ""; // Auto-fill Vehicle
+                document.getElementById('to_meet').value = data.to_meet || "";
+                document.getElementById('department').value = data.department || "";
+                if (data.is_booking) msg.innerHTML = "✅ Pre-Booked";
+                else msg.innerHTML = "ℹ️ Returning Visitor";
+            }
+        }
+
+        async function generatePassAndPrint() {
+            if (!capturedImage) { alert("Please capture photo!"); return; }
+
+            const btn = document.getElementById('printBtn');
+            const statusMsg = document.getElementById('save-status');
+
+            // 1. Collect Data (Added vehicle)
+            const payload = {
+                mobile: document.getElementById('mobile').value,
+                name: document.getElementById('name').value,
+                designation: document.getElementById('designation').value,
+                company: document.getElementById('company').value,
+                laptop: document.getElementById('laptop').value,
+                vehicle: document.getElementById('vehicle').value,
+                to_meet: document.getElementById('to_meet').value,
+                department: document.getElementById('department').value,
+                image: capturedImage
+            };
+
+            if (!payload.mobile || !payload.name) { alert("Please enter Name and Mobile"); return; }
+
+            btn.disabled = true;
+            btn.innerText = "⏳ Preparing...";
+            statusMsg.innerText = "Getting Pass ID...";
+
+            try {
+                // 2. FAST: Get Sequential ID Only
+                const idRes = await fetch('/api/get_next_id');
+                const idData = await idRes.json();
+                const passID = idData.next_id || "---";
+
+                // 3. Update Ticket UI
+                const now = new Date();
+                const dateStr = now.toLocaleDateString('en-GB');
+                const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+                document.getElementById('t-pass-id').innerText = passID;
+                document.getElementById('t-date-time').innerText = dateStr + " " + timeStr;
+                document.getElementById('t-name').innerText = payload.name;
+                document.getElementById('t-designation').innerText = payload.designation;
+                document.getElementById('t-company').innerText = payload.company;
+                document.getElementById('t-mobile').innerText = payload.mobile;
+                document.getElementById('t-laptop').innerText = payload.laptop;
+                document.getElementById('t-vehicle').innerText = payload.vehicle; // Show on Pass
+                document.getElementById('t-meet').innerText = payload.to_meet;
+                document.getElementById('t-dept').innerText = payload.department;
+                document.getElementById('t-photo').src = capturedImage;
+
+                // 4. START UPLOAD
+                statusMsg.innerText = "🔄 Syncing to Cloud...";
+                statusMsg.style.color = "blue";
+
+                const uploadPromise = fetch('/api/entry', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                // 5. PRINT
+                setTimeout(() => {
+                    window.print();
+
+                    uploadPromise.then(res => res.json()).then(data => {
+                        if (data.status === 'success') {
+                            statusMsg.innerText = "✅ Saved to Sheets & Drive!";
+                            statusMsg.style.color = "green";
+                            setTimeout(() => window.location.reload(), 1000);
+                        } else {
+                            statusMsg.innerText = "⚠️ Print OK, but Save Failed: " + data.message;
+                            statusMsg.style.color = "red";
+                            btn.disabled = false;
+                        }
+                    }).catch(err => {
+                        statusMsg.innerText = "⚠️ Network Error during save.";
+                    });
+                }, 500);
+
+            } catch (err) {
+                console.error(err);
+                alert("Network Error! Could not get Pass ID.");
+                btn.disabled = false;
+                btn.innerText = "🖨️ Print & Save";
+            }
+        }
+
+        async function markExit() {
+            const mobile = document.getElementById('exit-mobile').value;
+            const res = await fetch('/api/exit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mobile }) });
+            const data = await res.json();
+            alert(data.message || "Marked OUT");
+            if (data.status === 'success') document.getElementById('exit-mobile').value = "";
+        }
+
+        let currentCheckoutVisitorId = null;
+        let currentCheckoutVisitorName = null;
+
+        async function loadActiveVisitors() {
+            const tbody = document.getElementById('active-visitors-body');
+            tbody.innerHTML = "<tr><td colspan='5' style='text-align:center'>Loading...</td></tr>";
+            try {
+                const res = await fetch('/api/get_active_visitors');
+                const data = await res.json();
+                tbody.innerHTML = "";
+                if (data.length === 0) {
+                    tbody.innerHTML = "<tr><td colspan='5' style='text-align:center'>No active visitors currently inside.</td></tr>";
+                    return;
+                }
+                data.forEach(v => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td><strong>${v.name}</strong></td>
+                            <td>${v.company}</td>
+                            <td>${v.to_meet} - ${v.department}</td>
+                            <td>${v.entry_time}</td>
+                            <td><button class="btn-sm action-btn" style="margin:0; width:auto; padding:5px 10px; background:#dc2626; border:none;" onclick="openCheckoutModal(${v.id}, '${v.name}', '${v.entry_time}')">✓ Check Out</button></td>
+                        </tr>`;
+                });
+            } catch (e) {
+                tbody.innerHTML = "<tr><td colspan='5'>Error loading active visitors</td></tr>";
+            }
+        }
+
+        function openCheckoutModal(visitorId, visitorName, entryTime) {
+            currentCheckoutVisitorId = visitorId;
+            currentCheckoutVisitorName = visitorName;
+
+            // Update modal content
+            document.getElementById('modal-visitor-name').innerText = visitorName;
+            document.getElementById('modal-entry-time').innerText = entryTime;
+
+            // Set current time display
+            const now = new Date();
+            const currentTimeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+            document.getElementById('current-time-display').innerText = currentTimeStr;
+
+            // Reset radio buttons and custom time
+            document.getElementById('current-time').checked = true;
+            document.getElementById('custom-hour').disabled = true;
+            document.getElementById('custom-minute').disabled = true;
+            document.getElementById('custom-period').disabled = true;
+            document.getElementById('custom-hour').value = '';
+            document.getElementById('custom-minute').value = '';
+
+            // Show modal
+            document.getElementById('checkout-modal').style.display = 'flex';
+        }
+
+        function closeCheckoutModal() {
+            document.getElementById('checkout-modal').style.display = 'none';
+            currentCheckoutVisitorId = null;
+            currentCheckoutVisitorName = null;
+        }
+
+        // Enable/disable custom time input based on radio selection
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentTimeRadio = document.getElementById('current-time');
+            const customTimeRadio = document.getElementById('custom-time');
+            const customHour = document.getElementById('custom-hour');
+            const customMinute = document.getElementById('custom-minute');
+            const customPeriod = document.getElementById('custom-period');
+
+            if (currentTimeRadio) {
+                currentTimeRadio.addEventListener('change', function() {
+                    if (this.checked) {
+                        customHour.disabled = true;
+                        customMinute.disabled = true;
+                        customPeriod.disabled = true;
+                        customHour.value = '';
+                        customMinute.value = '';
+                    }
+                });
+            }
+
+            if (customTimeRadio) {
+                customTimeRadio.addEventListener('change', function() {
+                    if (this.checked) {
+                        customHour.disabled = false;
+                        customMinute.disabled = false;
+                        customPeriod.disabled = false;
+                        customHour.focus();
+                    }
+                });
+            }
+        });
+
+        async function confirmCheckout() {
+            const timeOption = document.querySelector('input[name="time-option"]:checked').value;
+            let customTime = null;
+
+            if (timeOption === 'custom') {
+                const hour = document.getElementById('custom-hour').value;
+                const minute = document.getElementById('custom-minute').value;
+                const period = document.getElementById('custom-period').value;
+
+                if (!hour || !minute) {
+                    alert('Please enter hour and minute');
+                    return;
+                }
+
+                // Validate inputs
+                const hourNum = parseInt(hour);
+                const minuteNum = parseInt(minute);
+
+                if (hourNum < 1 || hourNum > 12) {
+                    alert('Hour must be between 1 and 12');
+                    return;
+                }
+
+                if (minuteNum < 0 || minuteNum > 59) {
+                    alert('Minute must be between 0 and 59');
+                    return;
+                }
+
+                // Convert to 24-hour format for backend
+                let hour24 = hourNum;
+                if (period === 'PM' && hourNum !== 12) {
+                    hour24 = hourNum + 12;
+                } else if (period === 'AM' && hourNum === 12) {
+                    hour24 = 0;
+                }
+
+                // Format as HH:MM
+                customTime = String(hour24).padStart(2, '0') + ':' + String(minuteNum).padStart(2, '0');
+            }
+
+            try {
+                const payload = {
+                    visitor_id: currentCheckoutVisitorId,
+                    custom_time: customTime
+                };
+
+                const res = await fetch('/api/checkout_visitor', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                
+                if (data.status === 'success') {
+                    closeCheckoutModal();
+                    
+                    // Show success message
+                    const card = document.querySelector('#exit .card');
+                    const successDiv = document.createElement('div');
+                    successDiv.style.cssText = 'background:#d1fae5; border-left:4px solid #10b981; padding:15px; border-radius:6px; margin-bottom:15px; color:#065f46; font-weight:600; display:flex; align-items:center; gap:10px;';
+                    successDiv.innerHTML = '<span style="font-size:1.5rem;">✓</span> Checked out successfully';
+                    card.insertBefore(successDiv, card.firstChild);
+                    
+                    setTimeout(() => {
+                        successDiv.style.transition = 'opacity 0.3s';
+                        successDiv.style.opacity = '0';
+                        setTimeout(() => successDiv.remove(), 300);
+                    }, 3000);
+                    
+                    loadActiveVisitors(); // Refresh list
+                } else {
+                    alert(`❌ Error: ${data.message}`);
+                }
+            } catch (e) {
+                alert('Network error during checkout');
+            }
+        }
+
+        loadBookings();
+    </script>
+    <div
+        style="position: fixed; bottom: 10px; right: 15px; color: rgba(0, 0, 0, 0.3); font-size: 12px; font-family: sans-serif; font-weight: 600; pointer-events: none; z-index: 9999;">
+        Designed and Developed by Keethapriyan MR and Alan S at HIVE
+    </div>
+</body>
+
+</html>
