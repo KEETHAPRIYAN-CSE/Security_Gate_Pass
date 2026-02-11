@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS bookings (
 -- Default password for all users is 'password123' (hashed with bcrypt)
 -- Faculty users should be manually created with default password, they can change it on first login
 -- Using INSERT IGNORE to prevent duplicate entry errors if run multiple times
--- Note: Generate password hash using: python -c "import bcrypt; print(bcrypt.hashpw('password123'.encode(), bcrypt.gensalt()).decode())"
+-- Note: Generate password hash using bcrypt.hashpw with bcrypt.gensalt
 -- Insert default users (password: password123)
 INSERT IGNORE INTO users (username, password, email, role, name, department, first_login) VALUES
 ('admin', '$2b$12$9/SUE9oND0k88cl8b/nCBuoP0l8tddCLM9vPJHV80p/oQ6oyolFq6', 'admin@sritcbe.ac.in', 'Admin', 'System Admin', 'ADMIN', FALSE),

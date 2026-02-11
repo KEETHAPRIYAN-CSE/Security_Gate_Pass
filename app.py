@@ -119,8 +119,26 @@ def api_login():
     
     user = user[0]
     
-    # Verify password
-    if not bcrypt.checkpw(password.encode('utf-8'), user['password'].encode('utf-8')):
+    # Verify password - supports both bcrypt hashed and plain text passwords
+    stored_password = user['password']
+    password_valid = False
+    
+    if stored_password.startswith('$2b$') or stored_password.startswith('$2a$'):
+        # Password is bcrypt hashed - verify with bcrypt
+        try:
+            password_valid = bcrypt.checkpw(password.encode('utf-8'), stored_password.encode('utf-8'))
+        except Exception:
+            password_valid = False
+    else:
+        # Password is plain text (e.g. created directly in phpMyAdmin)
+        password_valid = (password == stored_password)
+        
+        # Auto-upgrade: hash the plain text password for future security
+        if password_valid:
+            hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            execute_query("UPDATE users SET password = %s WHERE id = %s", (hashed, user['id']))
+    
+    if not password_valid:
         return jsonify({'status': 'error', 'message': 'Invalid username or password.'})
     
     # Set session
@@ -540,6 +558,9 @@ def entry():
                 "UPDATE bookings SET status = 'Arrived' WHERE visitor_mobile = %s AND status = 'Pending'",
                 (data['mobile'],)
             )
+            
+            # Create photo URL for the visitor
+            photo_url = f'/api/photo/{visitor_id}'
             
             return jsonify({
                 'status': 'success',
