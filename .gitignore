@@ -35,3 +35,5 @@ db_config.py
 
 # Logs
 *.log
+debug_users.py
+fix_passwords.py
