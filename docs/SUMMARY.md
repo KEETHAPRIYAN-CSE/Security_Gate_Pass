@@ -12,7 +12,8 @@ Your Visitor Management System has been successfully upgraded to Version 3.0 wit
 - **Database Authentication**: Username/password stored securely in MySQL
 - **Password Security**: bcrypt encryption with salt
 - **Mandatory Password Change**: First-login security enforcement
-- **User Management**: Admin dashboard for creating/managing accounts
+- **Security**: Role-based access, bcrypt password hashing, account suspension
+- **Member Management**: Create members via Python scripts or phpMyAdmin (ENUM dropdowns)
 - **Role-Based Access**: Admin, Faculty, Security with different permissions
 - **No External Dependencies**: Completely self-contained system
 
@@ -123,7 +124,7 @@ Your Visitor Management System has been successfully upgraded to Version 3.0 wit
 - ✅ **Removed Firebase**: No more external authentication service
 - ✅ **Self-Contained**: Zero external dependencies
 - ✅ **Enhanced Security**: bcrypt password hashing + mandatory changes
-- ✅ **User Management**: Admin can create/manage accounts via dashboard
+- ✅ **Member Management**: Create/manage members via `create_user_directly.py` or phpMyAdmin
 - ✅ **College Ready**: Comprehensive deployment guide for campus network
 - ✅ **Better Documentation**: Technical glossary and deployment guides
 

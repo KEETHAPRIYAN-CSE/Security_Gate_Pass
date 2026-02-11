@@ -84,7 +84,7 @@ VALUES ('test.faculty', '$2b$12$YOUR_HASH_HERE', 'Faculty', 'Test', 'Faculty', '
    **Admin Test:**
    ```
    Login: admin / password123
-   Expected: See "Admin Dashboard" with all visitors, user management
+   Expected: See "Admin Dashboard" with all visitors, visitor analytics
    ```
 
    **Security Test:**

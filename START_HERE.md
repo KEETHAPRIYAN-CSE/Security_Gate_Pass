@@ -123,7 +123,6 @@ In PowerShell (same window):
 ✅ Your app.py file is already updated with:
    ├─ Database authentication
    ├─ Password security (bcrypt)
-   ├─ User management
    └─ No Firebase dependency needed!
 
    ✅ Ready to start!
@@ -193,11 +192,21 @@ In PowerShell:
 5. Click "Set New Password"
 6. You'll be redirected to dashboard
 
-🛡️ Admin User Management:
-- Admins can create new users through "Users" tab
-- All new users get default password: password123
-- Users must change password on first login
-- Admins can reset any user's password
+🛡️ Creating New Members:
+
+**Option 1: Python Script (Recommended)**
+```bash
+python create_user_directly.py
+```
+Follow the prompts to create new members with secure passwords.
+
+**Option 2: phpMyAdmin**
+1. Generate password hash: `python generate_password_hash.py`
+2. Go to phpMyAdmin > members table > Insert
+3. Fill in the fields (role shows as dropdown!)
+4. Use the generated hash for `pwd` field
+
+📚 See: `PHPMYADMIN_USAGE_GUIDE.md` for detailed instructions
 ```
 
 ---

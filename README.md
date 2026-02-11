@@ -327,7 +327,8 @@ python setup_mysql.py
 
 - ✅ Removed Firebase dependency - fully self-contained
 - ✅ Database-based authentication with secure password hashing
-- ✅ User management interface for admins
+- ✅ Secure role-based dashboard access
+- ✅ Member creation via Python scripts or phpMyAdmin
 - ✅ Mandatory password change on first login
 - ✅ Password reset functionality
 - ✅ Enhanced security with bcrypt

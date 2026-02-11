@@ -29,7 +29,6 @@
             <button class="tab-btn" onclick="showTab('active_visitors')">🟢 Active Visitors</button>
             <button class="tab-btn" onclick="showTab('history')">📜 History</button>
             <button class="tab-btn" onclick="showTab('appointment')">📅 New Booking</button>
-            <button class="tab-btn" onclick="showTab('users')">👥 Users</button>
             <button class="tab-btn" onclick="showTab('database')">📂 Database</button>
         </div>
 
@@ -283,81 +282,7 @@
             </div>
         </div>
 
-        <div id="users" class="tab-content">
-            <div class="card" style="max-width:900px; margin:0 auto;">
-                <h2 style="margin-top:0; color:var(--primary); border-bottom:1px solid #e2e8f0; padding-bottom:1rem; margin-bottom:1.5rem;">👥 User Management</h2>
-                
-                <div style="background:#f8fafc; padding:1.5rem; border-radius:12px; margin-bottom:1.5rem;">
-                    <h4 style="margin:0 0 1rem 0; color:var(--accent);">Create New User</h4>
-                    <form id="addUserForm">
-                        <div class="row">
-                            <div>
-                                <label>Username</label>
-                                <input type="text" id="new_username" placeholder="e.g. john.cse" required>
-                            </div>
-                            <div>
-                                <label>Full Name</label>
-                                <input type="text" id="new_name" placeholder="Dr. John Smith" required>
-                            </div>
-                        </div>
-                        <div class="row" style="margin-top:1rem;">
-                            <div>
-                                <label>Email (Optional)</label>
-                                <input type="email" id="new_email" placeholder="john.cse@sritcbe.ac.in">
-                            </div>
-                            <div>
-                                <label>Department</label>
-                                <select id="new_dept">
-                                    <option value="CSE">CSE</option>
-                                    <option value="IT">IT</option>
-                                    <option value="ECE">ECE</option>
-                                    <option value="EEE">EEE</option>
-                                    <option value="MECH">MECH</option>
-                                    <option value="CIVIL">CIVIL</option>
-                                    <option value="AIDS">AIDS</option>
-                                    <option value="AIML">AIML</option>
-                                    <option value="Science and Humanities">Science and Humanities</option>
-                                    <option value="AUTOMOBILE">AUTOMOBILE</option>
-                                    <option value="BIOMEDICAL">BIOMEDICAL</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label>Role</label>
-                                <select id="new_role">
-                                    <option value="Faculty">Faculty</option>
-                                    <option value="Security">Security</option>
-                                    <option value="Admin">Admin</option>
-                                </select>
-                            </div>
-                        </div>
-                        <button type="button" class="action-btn" onclick="createUser()" style="margin-top:1rem;">➕ Create User</button>
-                        <p id="user_msg" style="text-align:center; margin-top:0.5rem; font-weight:600;"></p>
-                    </form>
-                    <p style="color:var(--text-light); font-size:0.85rem; margin-top:1rem;">💡 Default password: <code>password123</code> - User must change it on first login.</p>
-                </div>
 
-                <div style="background:#f8fafc; padding:1.5rem; border-radius:12px;">
-                    <h4 style="margin:0 0 1rem 0; color:var(--accent);">Existing Users</h4>
-                    <div class="table-container">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Username</th>
-                                    <th>Name</th>
-                                    <th>Role</th>
-                                    <th>Department</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="users_tbody">
-                                <tr><td colspan="6" style="text-align:center;">Loading...</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 
     <script>
@@ -496,118 +421,7 @@ function downloadExcel() {
     window.location.href = `/api/admin/download_report?from=${from}&to=${to}`;
 }
 
-// User Management Functions
-async function loadUsers() {
-    try {
-        const res = await fetch('/api/admin/users');
-        const data = await res.json();
-        const tbody = document.getElementById('users_tbody');
-        tbody.innerHTML = '';
-        
-        if (data.users && data.users.length > 0) {
-            data.users.forEach(user => {
-                tbody.innerHTML += `
-                    <tr>
-                        <td><strong>${user.username}</strong></td>
-                        <td>${user.name}</td>
-                        <td><span class="badge badge-${user.role === 'Admin' ? 'red' : user.role === 'Security' ? 'yellow' : 'blue'}">${user.role}</span></td>
-                        <td>${user.department || '-'}</td>
-                        <td>${user.first_login ? '<span class="badge badge-yellow">Pending</span>' : '<span class="badge badge-green">Active</span>'}</td>
-                        <td>
-                            <button onclick="resetPassword('${user.username}')" style="padding:0.3rem 0.6rem; background:var(--warning); color:white; border:none; border-radius:4px; cursor:pointer; font-size:0.8rem;">Reset</button>
-                            ${user.role !== 'Admin' ? `<button onclick="deleteUser('${user.username}')" style="padding:0.3rem 0.6rem; background:var(--danger); color:white; border:none; border-radius:4px; cursor:pointer; font-size:0.8rem; margin-left:0.3rem;">Delete</button>` : ''}
-                        </td>
-                    </tr>`;
-            });
-        } else {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No users found.</td></tr>';
-        }
-    } catch (e) {
-        console.error(e);
-    }
-}
 
-async function createUser() {
-    const username = document.getElementById('new_username').value.trim();
-    const name = document.getElementById('new_name').value.trim();
-    const email = document.getElementById('new_email').value.trim();
-    const dept = document.getElementById('new_dept').value;
-    const role = document.getElementById('new_role').value;
-    const msg = document.getElementById('user_msg');
-    
-    if (!username || !name) {
-        msg.innerText = 'Username and Name are required.';
-        msg.style.color = 'var(--danger)';
-        return;
-    }
-    
-    try {
-        const res = await fetch('/api/admin/users', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, name, email, department: dept, role })
-        });
-        const data = await res.json();
-        
-        if (data.status === 'success') {
-            msg.innerText = 'User created successfully!';
-            msg.style.color = 'var(--success)';
-            document.getElementById('addUserForm').reset();
-            loadUsers();
-        } else {
-            msg.innerText = data.message;
-            msg.style.color = 'var(--danger)';
-        }
-    } catch (e) {
-        msg.innerText = 'Failed to create user.';
-        msg.style.color = 'var(--danger)';
-    }
-}
-
-async function resetPassword(username) {
-    if (!confirm(`Reset password for ${username} to default?`)) return;
-    
-    try {
-        const res = await fetch('/api/admin/reset-password', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username })
-        });
-        const data = await res.json();
-        
-        if (data.status === 'success') {
-            alert('Password reset to: password123');
-            loadUsers();
-        } else {
-            alert('Failed: ' + data.message);
-        }
-    } catch (e) {
-        alert('Failed to reset password.');
-    }
-}
-
-async function deleteUser(username) {
-    if (!confirm(`Delete user ${username}? This cannot be undone.`)) return;
-    
-    try {
-        const res = await fetch('/api/admin/users/' + username, {
-            method: 'DELETE'
-        });
-        const data = await res.json();
-        
-        if (data.status === 'success') {
-            alert('User deleted.');
-            loadUsers();
-        } else {
-            alert('Failed: ' + data.message);
-        }
-    } catch (e) {
-        alert('Failed to delete user.');
-    }
-}
-
-// Load users when page loads
-document.addEventListener('DOMContentLoaded', loadUsers);
 
 
     </script>
