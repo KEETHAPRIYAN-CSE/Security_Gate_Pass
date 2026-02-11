@@ -1,16 +1,16 @@
 """
-Direct User Creation Script
-Use this script to create users directly in the database without using phpMyAdmin
+Direct Member Creation Script
+Use this script to create members directly in the database without using phpMyAdmin
 """
 
 from db_config import execute_query
 import bcrypt
 
-def create_user_in_db(username, password, email, role, name, department):
-    """Create a user directly in the database with proper password hashing"""
+def create_user_in_db(username, password, role, firstname, lastname, department):
+    """Create a member directly in the database with proper password hashing"""
     
     # Check if username already exists
-    existing = execute_query("SELECT username FROM users WHERE username = %s", (username,), fetch=True)
+    existing = execute_query("SELECT username FROM members WHERE username = %s", (username,), fetch=True)
     if existing:
         return False, "Username already exists"
     
@@ -20,15 +20,15 @@ def create_user_in_db(username, password, email, role, name, department):
     except Exception as e:
         return False, f"Password hashing failed: {e}"
     
-    # Insert user
+    # Insert member
     try:
         result = execute_query(
-            "INSERT INTO users (username, password, email, role, name, department, first_login) VALUES (%s, %s, %s, %s, %s, %s, TRUE)",
-            (username, hashed_password, email, role, name, department)
+            "INSERT INTO members (username, pwd, role, firstname, lastname, department, suspended) VALUES (%s, %s, %s, %s, %s, %s, 0)",
+            (username, hashed_password, role, firstname, lastname, department)
         )
         
         if result:
-            return True, "User created successfully"
+            return True, "Member created successfully"
         else:
             return False, "Database insertion failed"
             
@@ -37,15 +37,15 @@ def create_user_in_db(username, password, email, role, name, department):
 
 def main():
     print("=" * 60)
-    print("👤 DIRECT USER CREATION TOOL")
+    print("👤 DIRECT MEMBER CREATION TOOL")
     print("=" * 60)
     print()
-    print("Create users directly in the database with proper password hashing.")
+    print("Create members directly in the database with proper password hashing.")
     print("This is easier than using phpMyAdmin manually.")
     print()
     
     while True:
-        print("Enter user details (or 'quit' to exit):")
+        print("Enter member details (or 'quit' to exit):")
         print()
         
         username = input("Username: ").strip()
@@ -62,12 +62,15 @@ def main():
             print("❌ Password is required!")
             continue
             
-        name = input("Full Name: ").strip()
-        if not name:
-            print("❌ Full name is required!")
+        firstname = input("First Name: ").strip()
+        if not firstname:
+            print("❌ First name is required!")
             continue
         
-        email = input("Email (optional): ").strip()
+        lastname = input("Last Name: ").strip()
+        if not lastname:
+            print("❌ Last name is required!")
+            continue
         
         print("\nSelect Role:")
         print("1. Faculty")
@@ -82,30 +85,26 @@ def main():
             print("❌ Invalid role selection!")
             continue
             
-        department = input("Department: ").strip()
-        if not department:
-            print("❌ Department is required!")
-            continue
+        department = input("Department (optional): ").strip()
         
-        print(f"\nCreating user:")
+        print(f"\nCreating member:")
         print(f"  Username: {username}")
-        print(f"  Name: {name}")
+        print(f"  Name: {firstname} {lastname}")
         print(f"  Role: {role}")
-        print(f"  Department: {department}")
-        print(f"  Email: {email or 'None'}")
+        print(f"  Department: {department or 'None'}")
         print()
         
-        confirm = input("Create this user? (y/n): ").strip().lower()
+        confirm = input("Create this member? (y/n): ").strip().lower()
         if confirm not in ['y', 'yes']:
-            print("❌ User creation cancelled.")
+            print("❌ Member creation cancelled.")
             continue
         
-        # Create the user
-        success, message = create_user_in_db(username, password, email, role, name, department)
+        # Create the member
+        success, message = create_user_in_db(username, password, role, firstname, lastname, department)
         
         if success:
             print("✅ " + message)
-            print(f"🔑 User can login with: {username} / {password}")
+            print(f"🔑 Member can login with: {username} / {password}")
         else:
             print("❌ " + message)
         

@@ -111,16 +111,20 @@ def api_login():
     if not username or not password:
         return jsonify({'status': 'error', 'message': 'Username and password are required.'})
 
-    # Check if user exists in database
-    user = execute_query("SELECT * FROM users WHERE username = %s", (username,), fetch=True)
+    # Check if member exists in database
+    member = execute_query("SELECT * FROM members WHERE username = %s", (username,), fetch=True)
     
-    if not user:
+    if not member:
         return jsonify({'status': 'error', 'message': 'Invalid username or password.'})
     
-    user = user[0]
+    member = member[0]
+    
+    # Check if account is suspended
+    if member.get('suspended', 0) == 1:
+        return jsonify({'status': 'error', 'message': 'Account is suspended. Contact administrator.'})
     
     # Verify password - supports both bcrypt hashed and plain text passwords
-    stored_password = user['password']
+    stored_password = member['pwd']
     password_valid = False
     
     if stored_password.startswith('$2b$') or stored_password.startswith('$2a$'):
@@ -136,21 +140,17 @@ def api_login():
         # Auto-upgrade: hash the plain text password for future security
         if password_valid:
             hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-            execute_query("UPDATE users SET password = %s WHERE id = %s", (hashed, user['id']))
+            execute_query("UPDATE members SET pwd = %s WHERE id = %s", (hashed, member['id']))
     
     if not password_valid:
         return jsonify({'status': 'error', 'message': 'Invalid username or password.'})
     
     # Set session
-    session['user'] = user['username']
-    session['role'] = user['role']
-    session['name'] = user['name']
-    session['dept'] = user['department']
-    session['user_id'] = user['id']
-    
-    # Check if first login (need to change password)
-    if user['first_login']:
-        return jsonify({'status': 'success', 'redirect': '/change-password', 'first_login': True})
+    session['user'] = member['username']
+    session['role'] = member['role']
+    session['name'] = f"{member['firstname']} {member['lastname']}"
+    session['dept'] = member.get('department', 'STAFF')
+    session['user_id'] = member['id']
     
     return jsonify({'status': 'success', 'redirect': '/dashboard'})
 
@@ -181,9 +181,9 @@ def change_password():
     # Hash new password
     hashed = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
     
-    # Update password and set first_login to False
+    # Update password
     result = execute_query(
-        "UPDATE users SET password = %s, first_login = FALSE WHERE username = %s",
+        "UPDATE members SET pwd = %s WHERE username = %s",
         (hashed, session['user'])
     )
     
@@ -728,38 +728,45 @@ def get_visitor_photo(visitor_id):
     except Exception as e:
         return "Error loading photo", 500
 
-# User Management Routes
+# Member Management Routes
 @app.route('/api/admin/users', methods=['GET'])
 def get_users():
-    """Get all users for admin panel"""
+    """Get all members for admin panel"""
     if session.get('role') != 'Admin':
         return jsonify({'status': 'error', 'message': 'Unauthorized'}), 403
     
     try:
-        users = execute_query("SELECT username, name, email, role, department, first_login FROM users ORDER BY role, name", fetch=True)
-        return jsonify({'status': 'success', 'users': users or []})
+        members = execute_query(
+            "SELECT username, CONCAT(firstname, ' ', lastname) as name, role, department, suspended FROM members ORDER BY role, firstname", 
+            fetch=True
+        )
+        return jsonify({'status': 'success', 'users': members or []})
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)})
 
 @app.route('/api/admin/users', methods=['POST'])
 def create_user():
-    """Create a new user with default password"""
+    """Create a new member with default password"""
     if session.get('role') != 'Admin':
         return jsonify({'status': 'error', 'message': 'Unauthorized'}), 403
     
     data = request.json
     username = data.get('username', '').strip()
     name = data.get('name', '').strip()
-    email = data.get('email', '').strip()
     department = data.get('department', '')
     role = data.get('role', 'Faculty')
     
     if not username or not name:
         return jsonify({'status': 'error', 'message': 'Username and name are required'})
     
+    # Split name into firstname and lastname
+    name_parts = name.split(' ', 1)
+    firstname = name_parts[0]
+    lastname = name_parts[1] if len(name_parts) > 1 else ''
+    
     try:
         # Check if username already exists
-        existing = execute_query("SELECT username FROM users WHERE username = %s", (username,), fetch=True)
+        existing = execute_query("SELECT username FROM members WHERE username = %s", (username,), fetch=True)
         if existing:
             return jsonify({'status': 'error', 'message': 'Username already exists'})
         
@@ -767,39 +774,39 @@ def create_user():
         default_password = 'password123'
         hashed = bcrypt.hashpw(default_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
         
-        # Insert new user
+        # Insert new member
         execute_query(
-            "INSERT INTO users (username, password, email, role, name, department, first_login) VALUES (%s, %s, %s, %s, %s, %s, TRUE)",
-            (username, hashed, email, role, name, department)
+            "INSERT INTO members (username, pwd, role, firstname, lastname, department, suspended) VALUES (%s, %s, %s, %s, %s, %s, 0)",
+            (username, hashed, role, firstname, lastname, department)
         )
         
-        return jsonify({'status': 'success', 'message': 'User created successfully'})
+        return jsonify({'status': 'success', 'message': 'Member created successfully'})
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)})
 
 @app.route('/api/admin/users/<username>', methods=['DELETE'])
 def delete_user(username):
-    """Delete a user (except admins)"""
+    """Delete a member (except admins)"""
     if session.get('role') != 'Admin':
         return jsonify({'status': 'error', 'message': 'Unauthorized'}), 403
     
     try:
-        # Check if user exists and is not admin
-        user = execute_query("SELECT role FROM users WHERE username = %s", (username,), fetch=True)
-        if not user:
-            return jsonify({'status': 'error', 'message': 'User not found'})
+        # Check if member exists and is not admin
+        member = execute_query("SELECT role FROM members WHERE username = %s", (username,), fetch=True)
+        if not member:
+            return jsonify({'status': 'error', 'message': 'Member not found'})
         
-        if user[0]['role'] == 'Admin':
-            return jsonify({'status': 'error', 'message': 'Cannot delete admin users'})
+        if member[0]['role'] == 'Admin':
+            return jsonify({'status': 'error', 'message': 'Cannot delete admin members'})
         
-        execute_query("DELETE FROM users WHERE username = %s", (username,))
-        return jsonify({'status': 'success', 'message': 'User deleted successfully'})
+        execute_query("DELETE FROM members WHERE username = %s", (username,))
+        return jsonify({'status': 'success', 'message': 'Member deleted successfully'})
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)})
 
 @app.route('/api/admin/reset-password', methods=['POST'])
 def reset_user_password():
-    """Reset user password to default"""
+    """Reset member password to default"""
     if session.get('role') != 'Admin':
         return jsonify({'status': 'error', 'message': 'Unauthorized'}), 403
     
@@ -815,7 +822,7 @@ def reset_user_password():
         hashed = bcrypt.hashpw(default_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
         
         execute_query(
-            "UPDATE users SET password = %s, first_login = TRUE WHERE username = %s",
+            "UPDATE members SET pwd = %s WHERE username = %s",
             (hashed, username)
         )
         

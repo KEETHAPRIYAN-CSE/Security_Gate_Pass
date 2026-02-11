@@ -1,6 +1,5 @@
-"""
-Password Hash Generator for Manual User Creation
-Use this script to generate bcrypt password hashes for inserting users directly into phpMyAdmin
+""" Password Hash Generator for Manual Member Creation
+Use this script to generate bcrypt password hashes for inserting members directly into phpMyAdmin
 """
 
 import bcrypt
@@ -21,8 +20,8 @@ def main():
     print("🔐 PASSWORD HASH GENERATOR FOR PHPMYADMIN")
     print("=" * 60)
     print()
-    print("This tool generates bcrypt password hashes for manual user creation in phpMyAdmin.")
-    print("Copy the generated hash and paste it in the 'password' field in phpMyAdmin.")
+    print("This tool generates bcrypt password hashes for manual member creation in phpMyAdmin.")
+    print("Copy the generated hash and paste it in the 'pwd' field in phpMyAdmin.")
     print()
     
     while True:
@@ -54,16 +53,16 @@ def main():
             print("=" * 60)
             print()
             print("📝 Instructions for phpMyAdmin:")
-            print("1. Go to phpMyAdmin > visitor_management > users table")
+            print("1. Go to phpMyAdmin > visitor_management > members table")
             print("2. Click 'Insert' to add new row")
             print("3. Fill in the fields:")
             print("   - username: (your choice)")
-            print("   - password: PASTE THE HASH ABOVE")
-            print("   - email: (optional)")
-            print("   - role: Faculty/Admin/Security")
-            print("   - name: (full name)")
-            print("   - department: (department code)")
-            print("   - first_login: TRUE (they can change password on first login)")
+            print("   - pwd: PASTE THE HASH ABOVE")
+            print("   - role: SELECT from dropdown (Admin/Faculty/Security)")
+            print("   - firstname: (first name)")
+            print("   - lastname: (last name)")
+            print("   - department: (department code or leave NULL)")
+            print("   - suspended: SELECT from dropdown (0=Active, 1=Suspended)")
             print("4. Click 'Go' to insert")
             print()
         else:

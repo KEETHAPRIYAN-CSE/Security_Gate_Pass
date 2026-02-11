@@ -1,23 +1,30 @@
 -- SRIT Visitor Management System Database Schema
 -- Execute this in phpMyAdmin or MySQL command line
 
+SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+SET time_zone = "+00:00";
+
 CREATE DATABASE IF NOT EXISTS visitor_management;
 USE visitor_management;
 
--- Users Table (Faculty, Admin, Security) with Authentication
-CREATE TABLE IF NOT EXISTS users (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(100) UNIQUE NOT NULL,
-    password VARCHAR(255) NOT NULL,
-    email VARCHAR(255),
-    role ENUM('Admin', 'Faculty', 'Security') NOT NULL,
-    name VARCHAR(255) NOT NULL,
+-- Members Table (Faculty, Admin, Security) with Authentication
+-- Role provides dropdown selection in phpMyAdmin for easy selection
+-- Role determines dashboard access:
+--   'Admin'    -> Admin Dashboard (full system access, user management, all visitors)
+--   'Faculty'  -> Faculty Dashboard (book visitors, view own bookings)
+--   'Security' -> Security Dashboard (visitor entry/exit, check-in/out)
+CREATE TABLE IF NOT EXISTS members (
+    id INT(4) NOT NULL AUTO_INCREMENT,
+    username VARCHAR(65) NOT NULL,
+    firstname VARCHAR(100) NOT NULL,
+    lastname VARCHAR(100) NOT NULL,
+    role ENUM('Admin', 'Faculty', 'Security') NOT NULL COMMENT 'Dropdown: Admin, Faculty, or Security',
+    suspended INT(11) NOT NULL DEFAULT 0 COMMENT '0=Active, 1=Suspended',
+    pwd VARCHAR(200) NOT NULL COMMENT 'bcrypt hashed password',
     department VARCHAR(100),
-    first_login BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_username (username),
-    INDEX idx_email (email)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    PRIMARY KEY (id),
+    INDEX idx_username (username)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
 -- Visitors Table (Entry/Exit Log)
 CREATE TABLE IF NOT EXISTS visitors (
@@ -62,15 +69,15 @@ CREATE TABLE IF NOT EXISTS bookings (
     INDEX idx_booking_time (booking_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Insert Admin and Security users (REQUIRED - Must be in database)
--- Default password for all users is 'password123' (hashed with bcrypt)
--- Faculty users should be manually created with default password, they can change it on first login
+-- Insert Admin and Security members (REQUIRED - Must be in database)
+-- Default password for all members is 'password123' (hashed with bcrypt)
+-- Faculty members should be manually created with default password
 -- Using INSERT IGNORE to prevent duplicate entry errors if run multiple times
 -- Note: Generate password hash using bcrypt.hashpw with bcrypt.gensalt
--- Insert default users (password: password123)
-INSERT IGNORE INTO users (username, password, email, role, name, department, first_login) VALUES
-('admin', '$2b$12$9/SUE9oND0k88cl8b/nCBuoP0l8tddCLM9vPJHV80p/oQ6oyolFq6', 'admin@sritcbe.ac.in', 'Admin', 'System Admin', 'ADMIN', FALSE),
-('security', '$2b$12$9/SUE9oND0k88cl8b/nCBuoP0l8tddCLM9vPJHV80p/oQ6oyolFq6', 'security@sritcbe.ac.in', 'Security', 'Security Desk', 'SECURITY', FALSE);
+-- Insert default members (password: password123)
+INSERT IGNORE INTO members (username, pwd, role, firstname, lastname, department, suspended) VALUES
+('admin', '$2b$12$9/SUE9oND0k88cl8b/nCBuoP0l8tddCLM9vPJHV80p/oQ6oyolFq6', 'Admin', 'System', 'Admin', 'ADMIN', 0),
+('security', '$2b$12$9/SUE9oND0k88cl8b/nCBuoP0l8tddCLM9vPJHV80p/oQ6oyolFq6', 'Security', 'Security', 'Desk', 'SECURITY', 0);
 
 -- Create view for active visitors (those who haven't exited)
 CREATE OR REPLACE VIEW active_visitors AS

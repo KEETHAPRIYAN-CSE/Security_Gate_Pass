@@ -101,17 +101,16 @@ Total: < 200ms (15-35x faster!)
 └─────────────────────────────────────────────────────────┘
 
 ┌──────────────────────┐
-│       users          │
+│       members        │
 ├──────────────────────┤
 │ id (PK)              │
-│ username (UNIQUE)    │ ← New: Login username
-│ password             │ ← New: bcrypt hashed
-│ email                │
-│ role                 │ → ENUM('Admin', 'Faculty', 'Security')
-│ name                 │
-│ department           │
-│ first_login          │ ← New: Force password change
-│ created_at           │
+│ username             │ ← Login username
+│ pwd                  │ ← bcrypt hashed password
+│ firstname            │
+│ lastname             │
+│ role                 │ → ENUM('Admin', 'Faculty', 'Security') - Dropdown!
+│ department           │ → Optional
+│ suspended            │ → 0=Active, 1=Suspended
 └──────────────────────┘
          │
          │ entered_by (FK)
