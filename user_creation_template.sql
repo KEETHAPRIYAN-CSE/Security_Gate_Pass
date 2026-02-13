@@ -15,20 +15,20 @@
 
 -- Example 1: Create a Faculty member
 INSERT INTO members (username, pwd, role, firstname, lastname, department, suspended) VALUES
-('john.faculty', 'PASTE_BCRYPT_HASH_HERE', 'Faculty', 'John', 'Doe', 'CSE', 0);
+('john.faculty', 'PASTE_MD5_HASH_HERE', 'Faculty', 'John', 'Doe', 'CSE', 0);
 
 -- Example 2: Create an Admin member  
 INSERT INTO members (username, pwd, role, firstname, lastname, department, suspended) VALUES
-('jane.admin', 'PASTE_BCRYPT_HASH_HERE', 'Admin', 'Jane', 'Smith', 'ADMIN', 0);
+('jane.admin', 'PASTE_MD5_HASH_HERE', 'Admin', 'Jane', 'Smith', 'ADMIN', 0);
 
 -- Example 3: Create a Security member
 INSERT INTO members (username, pwd, role, firstname, lastname, department, suspended) VALUES
-('security2', 'PASTE_BCRYPT_HASH_HERE', 'Security', 'Security', 'Officer 2', 'SECURITY', 0);
+('security2', 'PASTE_MD5_HASH_HERE', 'Security', 'Security', 'Officer 2', 'SECURITY', 0);
 
 -- STEPS TO USE THIS TEMPLATE:
 -- 1. Run: python generate_password_hash.py
--- 2. Enter your desired password to get the bcrypt hash
--- 3. Replace 'PASTE_BCRYPT_HASH_HERE' with the generated hash
+-- 2. Enter your desired password to get the md5 hash
+-- 3. Replace 'PASTE_MD5_HASH_HERE' with the generated hash
 -- 4. Modify username, firstname, lastname, department as needed
 -- 5. Set suspended to 0 (active) or 1 (suspended)
 -- 6. Copy the modified INSERT statement to phpMyAdmin > SQL tab
@@ -41,4 +41,4 @@ INSERT INTO members (username, pwd, role, firstname, lastname, department, suspe
 
 -- EXAMPLE WITH REAL HASH (password: test123):
 -- INSERT INTO members (username, pwd, role, firstname, lastname, department, suspended) VALUES
--- ('test.user', '$2b$12$abcdef1234567890', 'Faculty', 'Test', 'User', 'CSE', 0);
+-- ('test.user', 'd0e7e1f5a8b4a2b7dfdefd3b8c3d7771', 'Faculty', 'Test', 'User', 'CSE', 0);

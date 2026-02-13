@@ -536,7 +536,7 @@ def entry():
         """
         params = (
             now.date(),
-            now.time(),
+            now,
             data['mobile'],
             data['name'],
             data['designation'],
@@ -604,7 +604,7 @@ def exit_visitor():
             return jsonify({'status': 'error', 'message': 'Visitor not found in database'})
         
         # Update exit time
-        out_time = datetime.now(IST).time()
+        out_time = datetime.now(IST)
         execute_query(
             "UPDATE visitors SET out_time = %s WHERE id = %s",
             (out_time, visitor[0]['id'])
@@ -682,14 +682,16 @@ def checkout_visitor():
                 if hour < 0 or hour > 23 or minute < 0 or minute > 59:
                     return jsonify({'status': 'error', 'message': 'Invalid time format'})
                 
-                # Create time object in IST
+                # Create datetime object with today's date and custom time in IST
                 from datetime import time
-                out_time = time(hour, minute, 0)
+                today = datetime.now(IST).date()
+                out_time = datetime.combine(today, time(hour, minute, 0))
+                out_time = IST.localize(out_time)
             except Exception as e:
                 return jsonify({'status': 'error', 'message': 'Invalid time format. Use HH:MM'})
         else:
             # Use current time
-            out_time = datetime.now(IST).time()
+            out_time = datetime.now(IST)
         
         # Update exit time
         execute_query(
@@ -732,6 +734,6 @@ if __name__ == '__main__':
     # Test database connection on startup
     if test_connection():
         print("🚀 Starting Flask application...")
-        app.run(debug=True, port=5000)
+        app.run(debug=True, host='0.0.0.0', port=5000)
     else:
         print("❌ Cannot start: Database connection failed!")

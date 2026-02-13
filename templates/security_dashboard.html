@@ -577,6 +577,35 @@
         }
 
         loadBookings();
+
+        // Add Enter key navigation for entry form
+        document.addEventListener('DOMContentLoaded', function() {
+            const entryFormInputs = [
+                document.getElementById('mobile'),
+                document.getElementById('name'),
+                document.getElementById('designation'),
+                document.getElementById('company'),
+                document.getElementById('laptop'),
+                document.getElementById('vehicle'),
+                document.getElementById('to_meet'),
+                document.getElementById('department')
+            ].filter(input => input !== null);
+
+            entryFormInputs.forEach((input, index) => {
+                input.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const nextIndex = index + 1;
+                        if (nextIndex < entryFormInputs.length) {
+                            entryFormInputs[nextIndex].focus();
+                        } else {
+                            // Last field - focus on Print button
+                            document.getElementById('printBtn').focus();
+                        }
+                    }
+                });
+            });
+        });
     </script>
     <div
         style="position: fixed; bottom: 10px; right: 15px; color: rgba(0, 0, 0, 0.3); font-size: 12px; font-family: sans-serif; font-weight: 600; pointer-events: none; z-index: 9999;">

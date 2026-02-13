@@ -3,4 +3,3 @@ mysql-connector-python==8.2.0
 python-dotenv==1.0.0
 pytz
 Pillow==10.1.0
-bcrypt==4.1.2

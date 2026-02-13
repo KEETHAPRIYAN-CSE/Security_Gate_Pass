@@ -1,16 +1,14 @@
 """ Password Hash Generator for Manual Member Creation
-Use this script to generate bcrypt password hashes for inserting members directly into phpMyAdmin
+Use this script to generate MD5 password hashes for inserting members directly into phpMyAdmin
 """
 
-import bcrypt
+import hashlib
 import sys
 
 def generate_password_hash(password):
-    """Generate bcrypt hash for a password"""
+    """Generate MD5 hash for a password"""
     try:
-        # Generate hash with bcrypt
-        hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
-        return hashed.decode('utf-8')
+        return hashlib.md5(password.encode('utf-8')).hexdigest()
     except Exception as e:
         print(f"Error generating hash: {e}")
         return None
@@ -20,7 +18,7 @@ def main():
     print("🔐 PASSWORD HASH GENERATOR FOR PHPMYADMIN")
     print("=" * 60)
     print()
-    print("This tool generates bcrypt password hashes for manual member creation in phpMyAdmin.")
+    print("This tool generates MD5 password hashes for manual member creation in phpMyAdmin.")
     print("Copy the generated hash and paste it in the 'pwd' field in phpMyAdmin.")
     print()
     

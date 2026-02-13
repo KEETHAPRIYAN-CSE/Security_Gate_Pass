@@ -4,7 +4,7 @@ Use this script to create members directly in the database without using phpMyAd
 """
 
 from db_config import execute_query
-import bcrypt
+import hashlib
 
 def create_user_in_db(username, password, role, firstname, lastname, department):
     """Create a member directly in the database with proper password hashing"""
@@ -16,7 +16,7 @@ def create_user_in_db(username, password, role, firstname, lastname, department)
     
     # Hash the password
     try:
-        hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        hashed_password = hashlib.md5(password.encode('utf-8')).hexdigest()
     except Exception as e:
         return False, f"Password hashing failed: {e}"
     
